@@ -78,6 +78,14 @@ export async function setCachedEntry<T>(key: string, data: T): Promise<void> {
   }
 }
 
+export async function deleteCachedEntry(key: string): Promise<void> {
+  try {
+    await runInStore(RESPONSES_STORE, (store) => store.delete(key));
+  } catch {
+    // Best-effort cleanup; failures must not break requests.
+  }
+}
+
 interface OverrideEntry {
   key: string;
   data: unknown;
@@ -95,8 +103,8 @@ export async function getOverride<T>(key: string): Promise<T | null> {
   }
 }
 
-export async function getOverrides(
-  keys?: readonly string[],
+export async function getOverridesByPrefix(
+  prefix: string,
 ): Promise<Map<string, unknown>> {
   const overrides = new Map<string, unknown>();
   try {
@@ -105,7 +113,7 @@ export async function getOverrides(
       (store) => store.getAll(),
     );
     for (const entry of entries) {
-      if (!keys || keys.includes(entry.key)) {
+      if (entry.key.startsWith(prefix)) {
         overrides.set(entry.key, entry.data);
       }
     }
