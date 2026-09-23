@@ -78,7 +78,10 @@ export function SearchResultsView({
         <>
           {pinnedGroups.length > 0 ? (
             <section className="mb-6">
-              <h2 className="sticky z-10 mb-3 flex items-baseline gap-2 text-lg font-semibold text-slate-800">
+              <h2
+                style={{ top: "var(--sticky-offset, 0rem)" }}
+                className="sticky z-10 mb-3 flex items-baseline gap-2 text-lg font-semibold text-slate-800"
+              >
                 Pinned
                 <span className="text-sm font-normal text-slate-500">
                   ({pinnedTotal} {pinnedTotal === 1 ? "item" : "items"})
@@ -97,7 +100,11 @@ export function SearchResultsView({
           ) : null}
           <h2
             ref={headingRef}
-            style={{ top: "var(--sticky-offset, 0rem)" }}
+            style={{
+              top: "var(--sticky-offset, 0rem)",
+              scrollPaddingTop:
+                "calc(var(--sticky-offset, 0rem) + var(--sticky-heading-height, 2.5rem) + 0.5rem)",
+            }}
             className="sticky z-10 mb-3 text-lg font-semibold text-slate-800"
           >
             {resultsTitle}

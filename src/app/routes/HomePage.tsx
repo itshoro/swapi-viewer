@@ -87,7 +87,7 @@ export function HomePage() {
     <main className="flex h-screen flex-col px-4 py-4 lg:px-6">
       <header className="mb-4">
         <h1 className="flex items-baseline gap-2 text-2xl font-semibold text-slate-900">
-          SWAPI API viewer
+          SWAPI viewer
         </h1>
         <p className="text-sm text-slate-500">
           Source:{" "}
@@ -131,7 +131,7 @@ export function HomePage() {
               onClose={handleClose}
               onTogglePin={togglePin}
               onDelete={remove}
-              linkTo={(ref) => ({ pathname: `/${ref.category}/${ref.id}`, search })}
+              linkTo={(ref) => `/${ref.category}/${ref.id}`}
               resolveLabel={resolveResourceLabel}
             />
           ) : (

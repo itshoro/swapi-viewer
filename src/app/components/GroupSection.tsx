@@ -21,6 +21,8 @@ export function GroupSection({
       <h3
         style={{
           top: "calc(var(--sticky-offset, 0rem) + var(--sticky-heading-height, 2.5rem))",
+          scrollPaddingTop:
+            "calc(var(--sticky-offset, 0rem) + var(--sticky-heading-height, 2.5rem) + 0.5rem)",
         }}
         className="sticky z-10 mb-2 flex items-baseline gap-2 bg-white py-1 text-base font-semibold text-slate-800"
       >

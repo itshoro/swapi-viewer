@@ -39,6 +39,14 @@ export function EntityList({
             key={item.key}
             className={selected ? "bg-blue-50" : ""}
             data-selected={selected ? "true" : undefined}
+            style={
+              selected
+                ? {
+                    scrollMarginTop:
+                      "calc(var(--sticky-offset, 0rem) + var(--sticky-heading-height, 2.5rem) + 2rem)",
+                  }
+                : undefined
+            }
           >
             <div className="flex items-stretch">
               <button
