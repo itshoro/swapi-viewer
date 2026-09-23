@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   API_BASE,
@@ -42,12 +42,9 @@ export function HomePage() {
 
   const { togglePin, remove } = useResourceActions(selectedKey, handleClose);
 
-  useEffect(() => {
-    if (!selectedKey) return;
-    listRef.current
-      ?.querySelector('[data-selected="true"]')
-      ?.scrollIntoView({ block: "nearest" });
-  }, [selectedKey]);
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
+  const showList = !selectedKey || !isMobile;
+  const showDetail = Boolean(selectedKey);
 
   const {
     groups,
@@ -102,44 +99,55 @@ export function HomePage() {
         </p>
       </header>
       <div className="grid flex-1 gap-6 lg:min-h-0 lg:grid-cols-3 lg:overflow-hidden">
-        <section
-          ref={listRef}
-          className="lg:col-span-2 lg:min-h-0 lg:overflow-y-auto lg:pr-2"
-        >
-          <SearchResultsView
-            filters={filters}
-            listRef={listRef}
-            headingRef={headingRef}
-            loading={loading}
-            error={error}
-            groups={groups}
-            pinnedGroups={pinnedGroups}
-            total={total}
-            pinnedTotal={pinnedTotal}
-            resultsTitle={resultsTitle}
-            emptyMessage={emptyMessage}
-            enabledCategories={enabledCategories}
-            selectedKey={selectedKey}
-            onSelect={handleSelect}
-            onTogglePin={togglePin}
-          />
-        </section>
-        <section className="lg:min-h-0 lg:overflow-y-auto lg:pr-2">
-          {selectedItem ? (
-            <DetailPanel
-              item={selectedItem}
-              onClose={handleClose}
+          <section
+            ref={listRef}
+            className={`${showList ? "" : "hidden"} lg:block lg:col-span-2 lg:min-h-0 lg:overflow-y-auto lg:pr-2`}
+          >
+            <SearchResultsView
+              filters={filters}
+              listRef={listRef}
+              headingRef={headingRef}
+              loading={loading}
+              error={error}
+              groups={groups}
+              pinnedGroups={pinnedGroups}
+              total={total}
+              pinnedTotal={pinnedTotal}
+              resultsTitle={resultsTitle}
+              emptyMessage={emptyMessage}
+              enabledCategories={enabledCategories}
+              selectedKey={selectedKey}
+              onSelect={handleSelect}
               onTogglePin={togglePin}
-              onDelete={remove}
-              linkTo={(ref) => `/${ref.category}/${ref.id}`}
-              resolveLabel={resolveResourceLabel}
             />
-          ) : (
-            <p className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500">
-              Select an entry from the list to view its details.
-            </p>
-          )}
-        </section>
+          </section>
+          <section className={`${showDetail ? "" : "hidden"} lg:block lg:min-h-0 lg:overflow-y-auto lg:pr-2`}>
+            {selectedItem ? (
+              <>
+                <div className="mb-2 lg:hidden">
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="rounded-md border border-slate-300 px-3 py-1 text-sm text-slate-600 hover:border-blue-500 hover:text-blue-700"
+                  >
+                    ← Search
+                  </button>
+                </div>
+                <DetailPanel
+                  item={selectedItem}
+                  onClose={handleClose}
+                  onTogglePin={togglePin}
+                  onDelete={remove}
+                  linkTo={(ref) => `/${ref.category}/${ref.id}`}
+                  resolveLabel={resolveResourceLabel}
+                />
+              </>
+            ) : (
+              <p className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+                Select an entry from the list to view its details.
+              </p>
+            )}
+          </section>
       </div>
     </main>
   );
