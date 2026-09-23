@@ -24,17 +24,12 @@ export function GroupSection({
           scrollPaddingTop:
             "calc(var(--sticky-offset, 0rem) + var(--sticky-heading-height, 2.5rem) + 0.5rem)",
         }}
-        className="sticky z-10 flex items-baseline gap-2 bg-white pt-1 pb-2 text-base font-semibold text-slate-800"
+        className="sticky z-10 flex items-baseline gap-2 bg-white pt-1 pb-2"
       >
-        <Link
-          to={`/?categories=${group.category}`}
-          className="text-blue-600 hover:text-blue-800"
-        >
-          /api/{group.category}
-        </Link>
-        <span className="text-sm font-normal text-slate-500">
-          ({group.items.length})
+        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          {group.category}
         </span>
+        <span className="text-xs text-slate-400">({group.items.length})</span>
         <Link
           to={`/${group.category}/add`}
           className="ml-auto rounded border border-slate-300 px-2 py-0.5 text-xs font-normal text-slate-600 hover:border-blue-500 hover:text-blue-700"
