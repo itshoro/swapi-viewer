@@ -10,10 +10,10 @@ This application allows for structured viewing of the [SWAPI](https://swapi.info
 - Node 22 or newer
 - pnpm 9 or newer
 
-**Steps**
+**Install Steps**
 1. install relevant dependencies using `pnpm i`
-2. create a production build using `pnpm build`
-3. start webserver using `pnpm start`
+2. create a production build using `pnpm run build`
+3. start webserver using `pnpm run preview`
 
 ## Decisions
 
