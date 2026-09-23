@@ -51,3 +51,11 @@ I've skipped handling optimistic updates and rollback support in the current imp
 
 ### Deletions
 Deletions are implemented as soft deletes, simply because I didn't have a great idea right now on how to handle edge cases when restoring them. Restore isn't implemented.
+
+## Next steps
+
+1. Increase click area for mobile devices (`pointer: coarse`-media query), potentially in general
+2. Split Search Results and Pinned view into two separate pages / tabs
+3. Add a view to view an restore deleted items
+4. Use `dialog` elements instead of `window.confirm` for confirming deletion.
+5. Resizable panels on tablet and desktop devices
