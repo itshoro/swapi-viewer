@@ -81,10 +81,10 @@ export function HomePage() {
         : "No results.";
 
   return (
-    <main className="flex h-screen flex-col px-4 py-4 lg:px-6">
-      <header className="mb-4">
+    <main className="flex h-screen flex-col px-0 py-0 lg:px-6 lg:py-4">
+      <header className="mb-4 px-4 py-4 lg:px-6 lg:py-4">
         <h1 className="flex items-baseline gap-2 text-2xl font-semibold text-slate-900">
-          SWAPI viewer
+          SWAPI API viewer
         </h1>
         <p className="text-sm text-slate-500">
           Source:{" "}
@@ -98,11 +98,11 @@ export function HomePage() {
           </a>
         </p>
       </header>
-      <div className="grid flex-1 gap-6 lg:min-h-0 lg:grid-cols-3 lg:overflow-hidden">
-          <section
-            ref={listRef}
-            className={`${showList ? "" : "hidden"} lg:block lg:col-span-2 lg:min-h-0 lg:overflow-y-auto lg:pr-2`}
-          >
+      <div className="grid flex-1 gap-0 lg:min-h-0 lg:grid-cols-3 lg:overflow-hidden lg:rounded-lg lg:border lg:border-slate-200 lg:bg-white">
+        <section
+          ref={listRef}
+          className={`${showList ? "" : "hidden"} lg:block lg:col-span-2 lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-slate-200 lg:pr-4`}
+        >
             <SearchResultsView
               filters={filters}
               listRef={listRef}
@@ -121,33 +121,33 @@ export function HomePage() {
               onTogglePin={togglePin}
             />
           </section>
-          <section className={`${showDetail ? "" : "hidden"} lg:block lg:min-h-0 lg:overflow-y-auto lg:pr-2`}>
-            {selectedItem ? (
-              <>
-                <div className="mb-2 lg:hidden">
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    className="rounded-md border border-slate-300 px-3 py-1 text-sm text-slate-600 hover:border-blue-500 hover:text-blue-700"
-                  >
-                    ← Search
-                  </button>
-                </div>
-                <DetailPanel
-                  item={selectedItem}
-                  onClose={handleClose}
-                  onTogglePin={togglePin}
-                  onDelete={remove}
-                  linkTo={(ref) => `/${ref.category}/${ref.id}`}
-                  resolveLabel={resolveResourceLabel}
-                />
-              </>
-            ) : (
-              <p className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500">
-                Select an entry from the list to view its details.
-              </p>
-            )}
-          </section>
+        <section className={`${showDetail ? "" : "hidden"} lg:block lg:min-h-0 lg:overflow-y-auto lg:p-4`}>
+          {selectedItem ? (
+            <>
+              <div className="mb-2 lg:hidden">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="rounded-md border border-slate-300 px-3 py-1 text-sm text-slate-600 hover:border-blue-500 hover:text-blue-700"
+                >
+                  ← Search
+                </button>
+              </div>
+              <DetailPanel
+                item={selectedItem}
+                onClose={handleClose}
+                onTogglePin={togglePin}
+                onDelete={remove}
+                linkTo={(ref) => `/${ref.category}/${ref.id}`}
+                resolveLabel={resolveResourceLabel}
+              />
+            </>
+          ) : (
+            <p className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+              Select an entry from the list to view its details.
+            </p>
+          )}
+        </section>
       </div>
     </main>
   );

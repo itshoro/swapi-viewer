@@ -24,7 +24,7 @@ export function GroupSection({
           scrollPaddingTop:
             "calc(var(--sticky-offset, 0rem) + var(--sticky-heading-height, 2.5rem) + 0.5rem)",
         }}
-        className="sticky z-10 mb-2 flex items-baseline gap-2 bg-white py-1 text-base font-semibold text-slate-800"
+        className="sticky z-10 flex items-baseline gap-2 bg-white pt-1 pb-2 text-base font-semibold text-slate-800"
       >
         <Link
           to={`/?categories=${group.category}`}

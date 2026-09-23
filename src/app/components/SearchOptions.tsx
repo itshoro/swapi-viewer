@@ -28,11 +28,11 @@ export function SearchOptions({
   return (
     <fieldset
       ref={ref}
-      className="sticky top-0 z-20 mb-4 rounded-lg border border-slate-200 bg-white p-4"
+      className="sticky top-0 z-30 mb-0 rounded-none border-0 border-b border-slate-200 bg-white p-4 lg:rounded-t-lg"
     >
-      <legend className="px-1 text-sm font-medium text-slate-700">
-        Search options
-      </legend>
+      <div className="mb-3 text-sm font-medium text-slate-700">
+        <legend>Search options</legend>
+      </div>
       <label className="block">
         <span className="mb-1 block text-sm font-medium text-slate-700">
           Search

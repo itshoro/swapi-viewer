@@ -25,7 +25,7 @@ export function DetailPanel({
 }: DetailPanelProps) {
   const { category, id, resource, modified, pinned } = item;
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4">
+    <section className="rounded-none border-0 bg-white p-4 lg:rounded-lg lg:border lg:border-slate-200">
       <div className="mb-2 flex items-start justify-between gap-2">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">

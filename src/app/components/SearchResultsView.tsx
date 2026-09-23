@@ -70,24 +70,65 @@ export function SearchResultsView({
   return (
     <>
       <SearchOptions ref={optionsRef} filters={filters} />
-      {loading ? (
-        <p className="p-2 text-sm text-slate-500">Loading all endpoints…</p>
-      ) : error ? (
-        <p className="p-2 text-sm text-red-600">{error.message}</p>
-      ) : (
-        <>
-          {pinnedGroups.length > 0 ? (
-            <section className="mb-6">
-              <h2
-                style={{ top: "var(--sticky-offset, 0rem)" }}
-                className="sticky z-10 mb-3 flex items-baseline gap-2 text-lg font-semibold text-slate-800"
-              >
-                Pinned
-                <span className="text-sm font-normal text-slate-500">
-                  ({pinnedTotal} {pinnedTotal === 1 ? "item" : "items"})
+      <div className="px-4 lg:px-5">
+        {loading ? (
+          <p className="p-2 text-sm text-slate-500">Loading all endpoints…</p>
+        ) : error ? (
+          <p className="p-2 text-sm text-red-600">{error.message}</p>
+        ) : (
+          <>
+            {pinnedGroups.length > 0 ? (
+              <section className="mb-6">
+                <h2
+                  style={{
+                    top: "var(--sticky-offset, 0rem)",
+                    scrollPaddingTop:
+                      "calc(var(--sticky-offset, 0rem) + var(--sticky-heading-height, 2.5rem) + 0.5rem)",
+                  }}
+                  className="sticky z-20 flex items-baseline gap-2 bg-white pt-1 pb-3 text-lg font-semibold text-slate-800"
+                >
+                  Pinned
+                  <span className="text-sm font-normal text-slate-500">
+                    ({pinnedTotal} {pinnedTotal === 1 ? "item" : "items"})
+                  </span>
+                </h2>
+                {pinnedGroups.map((group) => (
+                  <GroupSection
+                    key={group.category}
+                    group={group}
+                    selectedKey={selectedKey}
+                    onSelect={onSelect}
+                    onTogglePin={onTogglePin}
+                  />
+                ))}
+              </section>
+            ) : null}
+            <h2
+              ref={headingRef}
+              style={{
+                top: "var(--sticky-offset, 0rem)",
+                scrollPaddingTop:
+                  "calc(var(--sticky-offset, 0rem) + var(--sticky-heading-height, 2.5rem) + 0.5rem)",
+              }}
+              className="sticky z-50 bg-white pt-1 pb-3 text-lg font-semibold text-slate-800"
+            >
+              {resultsTitle}
+              {total > 0 ? (
+                <span className="ml-2 font-normal text-slate-500">
+                  ({total} {total === 1 ? "item" : "items"})
                 </span>
-              </h2>
-              {pinnedGroups.map((group) => (
+              ) : null}
+            </h2>
+            {groups.length === 0 ? (
+              enabledCategories.size === 0 ? (
+                <p className="p-2 text-sm text-slate-500">
+                  Select at least one category to show results.
+                </p>
+              ) : (
+                <p className="p-2 text-sm text-slate-500">{emptyMessage}</p>
+              )
+            ) : (
+              groups.map((group) => (
                 <GroupSection
                   key={group.category}
                   group={group}
@@ -95,46 +136,11 @@ export function SearchResultsView({
                   onSelect={onSelect}
                   onTogglePin={onTogglePin}
                 />
-              ))}
-            </section>
-          ) : null}
-          <h2
-            ref={headingRef}
-            style={{
-              top: "var(--sticky-offset, 0rem)",
-              scrollPaddingTop:
-                "calc(var(--sticky-offset, 0rem) + var(--sticky-heading-height, 2.5rem) + 0.5rem)",
-            }}
-            className="sticky z-10 mb-3 text-lg font-semibold text-slate-800"
-          >
-            {resultsTitle}
-            {total > 0 ? (
-              <span className="ml-2 font-normal text-slate-500">
-                ({total} {total === 1 ? "item" : "items"})
-              </span>
-            ) : null}
-          </h2>
-          {groups.length === 0 ? (
-            enabledCategories.size === 0 ? (
-              <p className="p-2 text-sm text-slate-500">
-                Select at least one category to show results.
-              </p>
-            ) : (
-              <p className="p-2 text-sm text-slate-500">{emptyMessage}</p>
-            )
-          ) : (
-            groups.map((group) => (
-              <GroupSection
-                key={group.category}
-                group={group}
-                selectedKey={selectedKey}
-                onSelect={onSelect}
-                onTogglePin={onTogglePin}
-              />
-            ))
-          )}
-        </>
-      )}
+              ))
+            )}
+          </>
+        )}
+      </div>
     </>
   );
 }
