@@ -4,16 +4,10 @@ import { parseResourceUrl, type ResourceRef } from "../../dal/swapi";
 interface ResourceLinkProps {
   url: string;
   to?: (ref: ResourceRef) => To;
-  replace?: boolean;
   label?: (ref: ResourceRef) => string | null | undefined;
 }
 
-export function ResourceLink({
-  url,
-  to,
-  replace = false,
-  label,
-}: ResourceLinkProps) {
+export function ResourceLink({ url, to, label }: ResourceLinkProps) {
   const ref = parseResourceUrl(url);
   if (!ref) {
     return <span>{url}</span>;
@@ -22,7 +16,6 @@ export function ResourceLink({
   return (
     <Link
       to={to ? to(ref) : `/${ref.category}/${ref.id}`}
-      replace={replace}
       className="text-blue-600 underline decoration-blue-300 hover:text-blue-800 hover:decoration-blue-800"
     >
       {text}

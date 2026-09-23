@@ -18,20 +18,12 @@ function isDeletedRef(value: string, resolveLabel?: ResolveLabel): boolean {
 function renderValue(
   value: unknown,
   linkTo?: LinkTo,
-  replace?: boolean,
   resolveLabel?: ResolveLabel,
 ): ReactNode {
   if (typeof value === "string") {
     if (isResourceUrl(value)) {
       if (isDeletedRef(value, resolveLabel)) return null;
-      return (
-        <ResourceLink
-          url={value}
-          to={linkTo}
-          replace={replace}
-          label={resolveLabel}
-        />
-      );
+      return <ResourceLink url={value} to={linkTo} label={resolveLabel} />;
     }
     return <span>{value}</span>;
   }
@@ -42,12 +34,7 @@ function renderValue(
       <ul className="space-y-0.5">
         {visible.map((entry) => (
           <li key={entry}>
-            <ResourceLink
-              url={entry}
-              to={linkTo}
-              replace={replace}
-              label={resolveLabel}
-            />
+            <ResourceLink url={entry} to={linkTo} label={resolveLabel} />
           </li>
         ))}
       </ul>
@@ -64,7 +51,6 @@ interface EntityFieldProps {
   name: string;
   value: unknown;
   linkTo?: LinkTo;
-  replace?: boolean;
   resolveLabel?: ResolveLabel;
 }
 
@@ -72,15 +58,16 @@ export function EntityField({
   name,
   value,
   linkTo,
-  replace,
   resolveLabel,
 }: EntityFieldProps) {
-  const rendered = renderValue(value, linkTo, replace, resolveLabel);
+  const rendered = renderValue(value, linkTo, resolveLabel);
   if (rendered === null) return null;
   return (
     <div className="grid grid-cols-[minmax(0,10rem)_1fr] items-baseline gap-x-3 py-1.5">
       <dt className="text-sm font-medium text-slate-500">{name}</dt>
-      <dd className="min-w-0 break-words text-sm text-slate-800">{rendered}</dd>
+      <dd className="min-w-0 wrap-break-word text-sm text-slate-800">
+        {rendered}
+      </dd>
     </div>
   );
 }

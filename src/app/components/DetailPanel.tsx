@@ -13,7 +13,6 @@ interface DetailPanelProps {
   onDelete: (item: CollectionItem) => void;
   linkTo: (ref: ResourceRef) => To;
   resolveLabel: (ref: ResourceRef) => string | null | undefined;
-  replace: boolean;
 }
 
 export function DetailPanel({
@@ -23,7 +22,6 @@ export function DetailPanel({
   onDelete,
   linkTo,
   resolveLabel,
-  replace,
 }: DetailPanelProps) {
   const { category, id, resource, modified, pinned } = item;
   return (
@@ -87,7 +85,6 @@ export function DetailPanel({
             value={value}
             linkTo={linkTo}
             resolveLabel={resolveLabel}
-            replace={replace}
           />
         ))}
       </dl>

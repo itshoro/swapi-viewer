@@ -52,7 +52,10 @@ export function useBrowseFilters(): BrowseFilters {
   }, [categoriesParam]);
 
   const setQuery = (value: string) => {
-    setSearchParams(value.trim() ? { search: value } : {}, { replace: true });
+    const next = new URLSearchParams(searchParams);
+    if (value.trim()) next.set("search", value);
+    else next.delete("search");
+    setSearchParams(next, { replace: true });
   };
 
   const setPinFilter = (value: string) => {

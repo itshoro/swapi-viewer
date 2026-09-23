@@ -30,13 +30,10 @@ export function HomePage() {
     urlCategory && params.id ? resourceKey(urlCategory, params.id) : null;
 
   const handleSelect = (item: CollectionItem) => {
-    navigate(
-      {
-        pathname: `/${item.category}/${item.id}`,
-        search,
-      },
-      { replace: true },
-    );
+    navigate({
+      pathname: `/${item.category}/${item.id}`,
+      search,
+    });
   };
 
   const handleClose = () => {
@@ -134,9 +131,8 @@ export function HomePage() {
               onClose={handleClose}
               onTogglePin={togglePin}
               onDelete={remove}
-              linkTo={(ref) => `/${ref.category}/${ref.id}`}
+              linkTo={(ref) => ({ pathname: `/${ref.category}/${ref.id}`, search })}
               resolveLabel={resolveResourceLabel}
-              replace
             />
           ) : (
             <p className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500">
