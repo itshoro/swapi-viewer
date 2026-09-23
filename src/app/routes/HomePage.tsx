@@ -6,11 +6,10 @@ import {
   useSearchParams,
   type To,
 } from "react-router";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQueries } from "@tanstack/react-query";
 import {
   API_BASE,
   CATEGORIES,
-  getRoot,
   resourceKey,
   resourceLabel,
   type Category,
@@ -74,11 +73,6 @@ export function HomePage() {
     updateCategoryParam(next);
   };
 
-  const rootQuery = useQuery({
-    queryKey: ["root"],
-    queryFn: getRoot,
-  });
-
   const collectionResults = useQueries({
     queries: CATEGORIES.map((category) => ({
       queryKey: ["collection", category],
@@ -128,6 +122,11 @@ export function HomePage() {
   const selectedItem = selectedKey
     ? (itemsByKey.get(selectedKey) ?? null)
     : null;
+
+  const resolveResourceLabel = (ref: ResourceRef): string | undefined => {
+    const entry = itemsByKey.get(resourceKey(ref.category, ref.id));
+    return entry ? resourceLabel(entry.resource) : undefined;
+  };
 
   useEffect(() => {
     if (!selectedKey) return;
@@ -302,13 +301,18 @@ export function HomePage() {
           )}
         </section>
         <section className="lg:min-h-0 lg:overflow-y-auto lg:pr-2">
-          {selectedItem && (
+          {selectedItem ? (
             <DetailPanel
               item={selectedItem}
               onClose={handleClose}
               linkTo={(ref) => `/${ref.category}/${ref.id}`}
+              resolveLabel={resolveResourceLabel}
               replace
             />
+          ) : (
+            <p className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+              Select an entry from the list to view its details.
+            </p>
           )}
         </section>
       </div>
@@ -320,11 +324,13 @@ function DetailPanel({
   item,
   onClose,
   linkTo,
+  resolveLabel,
   replace,
 }: {
   item: CollectionItem;
   onClose: () => void;
   linkTo: (ref: ResourceRef) => To;
+  resolveLabel: (ref: ResourceRef) => string | undefined;
   replace: boolean;
 }) {
   const { category, id, resource, modified } = item;
@@ -365,13 +371,14 @@ function DetailPanel({
       <h3 className="mb-2 text-sm font-semibold text-slate-700">
         Fields &amp; relations
       </h3>
-      <dl className="space-y-1">
+      <dl className="divide-y divide-slate-100">
         {Object.entries(resource).map(([name, value]) => (
           <EntityField
             key={name}
             name={name}
             value={value}
             linkTo={linkTo}
+            resolveLabel={resolveLabel}
             replace={replace}
           />
         ))}
