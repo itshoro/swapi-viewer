@@ -23,6 +23,38 @@ import { editors } from "../editors";
 import { EntityField } from "../components/EntityField";
 import { EntityList } from "../components/EntityList";
 
+type SortKey = "name" | "pin" | "created" | "edited";
+type SortDir = "asc" | "desc";
+
+function resourceDate(
+  item: CollectionItem,
+  field: "created" | "edited",
+): number {
+  const raw = item.resource[field];
+  if (typeof raw !== "string") return 0;
+  const value = Date.parse(raw);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function compareItems(
+  a: CollectionItem,
+  b: CollectionItem,
+  sortKey: SortKey,
+  sortDir: SortDir,
+): number {
+  const result =
+    sortKey === "name"
+      ? resourceLabel(a.resource).localeCompare(
+          resourceLabel(b.resource),
+          undefined,
+          { sensitivity: "base" },
+        )
+      : sortKey === "pin"
+        ? Number(a.pinned) - Number(b.pinned)
+        : resourceDate(a, sortKey) - resourceDate(b, sortKey);
+  return sortDir === "asc" ? result : -result;
+}
+
 export function HomePage() {
   const navigate = useNavigate();
   const params = useParams();
@@ -34,6 +66,12 @@ export function HomePage() {
     pinFilterParam === "pinned" || pinFilterParam === "unpinned"
       ? pinFilterParam
       : "all";
+  const sortParam = searchParams.get("sort") ?? "";
+  const sortKey: SortKey =
+    sortParam === "pin" || sortParam === "created" || sortParam === "edited"
+      ? sortParam
+      : "name";
+  const sortDir: SortDir = searchParams.get("dir") === "desc" ? "desc" : "asc";
   const listRef = useRef<HTMLElement>(null);
 
   const handleSearchChange = (value: string) => {
@@ -44,6 +82,23 @@ export function HomePage() {
     const next = new URLSearchParams(searchParams);
     if (value === "all") next.delete("pin");
     else next.set("pin", value);
+    setSearchParams(next, { replace: true });
+  };
+
+  const handleSortKeyChange = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (value === "name") next.delete("sort");
+    else next.set("sort", value);
+    if (value === "pin" && next.get("dir") === null) {
+      next.set("dir", "desc");
+    }
+    setSearchParams(next, { replace: true });
+  };
+
+  const handleSortDirChange = () => {
+    const next = new URLSearchParams(searchParams);
+    if (sortDir === "asc") next.set("dir", "desc");
+    else next.delete("dir");
     setSearchParams(next, { replace: true });
   };
 
@@ -115,23 +170,25 @@ export function HomePage() {
         if (!enabledCategories.has(category)) return null;
         return {
           category,
-          items: (collectionResults[index]?.data ?? []).filter(
-            (item) =>
-              (q.length === 0 ||
-                resourceLabel(item.resource).toLowerCase().includes(q)) &&
-              (pinFilter === "pinned"
-                ? item.pinned
-                : pinFilter === "unpinned"
-                  ? !item.pinned
-                  : true),
-          ),
+          items: (collectionResults[index]?.data ?? [])
+            .filter(
+              (item) =>
+                (q.length === 0 ||
+                  resourceLabel(item.resource).toLowerCase().includes(q)) &&
+                (pinFilter === "pinned"
+                  ? item.pinned
+                  : pinFilter === "unpinned"
+                    ? !item.pinned
+                    : true),
+            )
+            .sort((a, b) => compareItems(a, b, sortKey, sortDir)),
         };
       },
     ).filter(
       (group): group is { category: Category; items: CollectionItem[] } =>
         group !== null && group.items.length > 0,
     );
-  }, [query, collectionResults, enabledCategories, pinFilter]);
+  }, [query, collectionResults, enabledCategories, pinFilter, sortKey, sortDir]);
 
   const total = groups.reduce((sum, group) => sum + group.items.length, 0);
 
@@ -340,6 +397,30 @@ export function HomePage() {
                 <option value="pinned">Pinned only</option>
                 <option value="unpinned">Un-pinned only</option>
               </select>
+            </label>
+            <label className="mt-3 block">
+              <span className="mb-1 block text-sm font-medium text-slate-700">
+                Sort by
+              </span>
+              <div className="flex gap-2">
+                <select
+                  value={sortKey}
+                  onChange={(event) => handleSortKeyChange(event.target.value)}
+                  className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                >
+                  <option value="name">Name / Title</option>
+                  <option value="pin">Pin status</option>
+                  <option value="created">Created</option>
+                  <option value="edited">Edited</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={handleSortDirChange}
+                  className="w-16 shrink-0 rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-600 transition-colors hover:bg-slate-50"
+                >
+                  {sortDir === "asc" ? "Asc" : "Desc"}
+                </button>
+              </div>
             </label>
             <div className="mt-3">
               <div className="mb-1 flex items-baseline justify-between">
