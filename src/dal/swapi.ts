@@ -3,10 +3,14 @@ import {
   deleteCachedEntry,
   deleteOverride,
   getCachedEntry,
+  getDeletedKeys,
   getOverride,
   getOverridesByPrefix,
+  getPinnedKeys,
   setCachedEntry,
+  setDeleted as setDeletedKey,
   setOverride,
+  setPinned as setPinnedKey,
 } from "./cache";
 
 export const API_BASE = "https://swapi.info/api";
@@ -50,6 +54,13 @@ export class HttpError extends Error {
     super(`swapi.info request failed with status ${status}`);
     this.name = "HttpError";
     this.status = status;
+  }
+}
+
+export class ResourceDeletedError extends Error {
+  constructor(category: Category, id: string) {
+    super(`Resource ${resourceKey(category, id)} has been deleted locally`);
+    this.name = "ResourceDeletedError";
   }
 }
 
@@ -139,6 +150,21 @@ export async function isResourceModified(
   return (await getOverride(resourceKey(category, id))) !== null;
 }
 
+export async function setResourcePinned(
+  category: Category,
+  id: string,
+  pinned: boolean,
+): Promise<void> {
+  await setPinnedKey(resourceKey(category, id), pinned);
+}
+
+export async function deleteResource(
+  category: Category,
+  id: string,
+): Promise<void> {
+  await setDeletedKey(resourceKey(category, id), true);
+}
+
 // ------------------------------------------------------------ collections
 
 export interface CollectionItem<T = Resource> {
@@ -147,6 +173,7 @@ export interface CollectionItem<T = Resource> {
   id: string;
   resource: T;
   modified: boolean;
+  pinned: boolean;
 }
 
 export async function getCollection<T>(
@@ -167,23 +194,36 @@ export async function getCollection<T>(
       (entry): entry is { resource: Resource; ref: ResourceRef } =>
         entry !== null,
     );
-  const overrides = await getOverridesByPrefix(`/api/${category}/`);
-  const items = entries.map(({ resource, ref }) => {
-    const key = resourceKey(ref.category, ref.id);
-    const override = overrides.get(key);
-    const hasValidOverride = override !== undefined && guard(override);
-    return {
-      key,
-      category: ref.category,
-      id: ref.id,
-      resource: hasValidOverride ? (override as T) : (resource as T),
-      modified: hasValidOverride,
-    };
-  });
+  const [overrides, pinnedKeys, deletedKeys] = await Promise.all([
+    getOverridesByPrefix(`/api/${category}/`),
+    getPinnedKeys(),
+    getDeletedKeys(),
+  ]);
+  const items = entries
+    .map(({ resource, ref }) => {
+      const key = resourceKey(ref.category, ref.id);
+      const override = overrides.get(key);
+      const hasValidOverride = override !== undefined && guard(override);
+      return {
+        key,
+        category: ref.category,
+        id: ref.id,
+        resource: hasValidOverride ? (override as T) : (resource as T),
+        modified: hasValidOverride,
+        pinned: pinnedKeys.has(key),
+      };
+    })
+    .filter((item) => !deletedKeys.has(item.key));
   const seen = new Set(items.map((item) => item.key));
   const prefix = `/api/${category}/`;
   for (const [key, data] of overrides) {
-    if (seen.has(key) || !key.startsWith(prefix) || !guard(data)) continue;
+    if (
+      seen.has(key) ||
+      !key.startsWith(prefix) ||
+      deletedKeys.has(key) ||
+      !guard(data)
+    )
+      continue;
     const id = key.slice(prefix.length);
     if (!/^\d+$/.test(id)) continue;
     items.push({
@@ -192,6 +232,7 @@ export async function getCollection<T>(
       id,
       resource: data as T,
       modified: true,
+      pinned: pinnedKeys.has(key),
     });
   }
   return items;
@@ -203,6 +244,10 @@ export async function getResource<T>(
   guard: TypeGuard<T>,
 ): Promise<T> {
   const key = resourceKey(category, id);
+  const deletedKeys = await getDeletedKeys();
+  if (deletedKeys.has(key)) {
+    throw new ResourceDeletedError(category, id);
+  }
   const override = await getResourceOverride(category, id, guard);
   if (override !== null) return override;
   return readThrough<T>(key, `/${category}/${id}`, guard);

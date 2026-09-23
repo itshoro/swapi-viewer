@@ -1,7 +1,7 @@
 import { useState, type SubmitEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import type { Category } from "../../dal/swapi";
+import { deleteResource, type Category } from "../../dal/swapi";
 import type { EditorConfig, FieldSpec } from "../editors";
 
 interface CategoryFormProps {
@@ -87,6 +87,22 @@ export function CategoryForm({
     }
   };
 
+  const handleDelete = async () => {
+    if (busy) return;
+    if (!window.confirm("Delete this item?")) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await deleteResource(category, resourceId);
+      await invalidate();
+      navigate(`/?categories=${category}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <form onSubmit={handleSave} className="space-y-5">
       <p className="text-sm">
@@ -143,6 +159,16 @@ export function CategoryForm({
         >
           Cancel
         </Link>
+        {!isNew ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={handleDelete}
+            className="ml-auto rounded-md border border-red-300 px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Delete
+          </button>
+        ) : null}
       </div>
     </form>
   );

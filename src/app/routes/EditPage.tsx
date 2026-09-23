@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   API_BASE,
   HttpError,
+  ResourceDeletedError,
   isCategory,
   resourceKey,
   type Category,
@@ -29,7 +30,11 @@ export function EditPage() {
     },
     enabled: enabled && !isNew,
     retry: (failureCount, err) =>
-      err instanceof HttpError && err.status === 404 ? false : failureCount < 2,
+      err instanceof HttpError && err.status === 404
+        ? false
+        : err instanceof ResourceDeletedError
+          ? false
+          : failureCount < 2,
   });
 
   const { data: modified = false } = useQuery({

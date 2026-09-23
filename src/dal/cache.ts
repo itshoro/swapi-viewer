@@ -3,7 +3,9 @@ export const CACHE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 const DB_NAME = "swapi-viewer-cache";
 const RESPONSES_STORE = "responses";
 const OVERRIDES_STORE = "overrides";
-const DB_VERSION = 2;
+const PINS_STORE = "pins";
+const DELETIONS_STORE = "deletions";
+const DB_VERSION = 4;
 
 interface CacheEntry<T> {
   key: string;
@@ -28,6 +30,12 @@ function openDatabase(): Promise<IDBDatabase> {
         }
         if (!db.objectStoreNames.contains(OVERRIDES_STORE)) {
           db.createObjectStore(OVERRIDES_STORE, { keyPath: "key" });
+        }
+        if (!db.objectStoreNames.contains(PINS_STORE)) {
+          db.createObjectStore(PINS_STORE, { keyPath: "key" });
+        }
+        if (!db.objectStoreNames.contains(DELETIONS_STORE)) {
+          db.createObjectStore(DELETIONS_STORE, { keyPath: "key" });
         }
       };
       request.onsuccess = () => resolve(request.result);
@@ -130,4 +138,56 @@ export async function setOverride(key: string, data: unknown): Promise<void> {
 
 export async function deleteOverride(key: string): Promise<void> {
   await runInStore(OVERRIDES_STORE, (store) => store.delete(key));
+}
+
+// ------------------------------------------------------------------- pins
+
+interface PinEntry {
+  key: string;
+}
+
+export async function getPinnedKeys(): Promise<Set<string>> {
+  try {
+    const entries = await runInStore<PinEntry[]>(PINS_STORE, (store) =>
+      store.getAll(),
+    );
+    return new Set(entries.map((entry) => entry.key));
+  } catch {
+    // Pins are best-effort reads; failures behave like "no pins".
+    return new Set();
+  }
+}
+
+export async function setPinned(key: string, pinned: boolean): Promise<void> {
+  if (pinned) {
+    await runInStore(PINS_STORE, (store) => store.put({ key }));
+  } else {
+    await runInStore(PINS_STORE, (store) => store.delete(key));
+  }
+}
+
+// ------------------------------------------------------------ deletions
+
+interface DeletionEntry {
+  key: string;
+}
+
+export async function getDeletedKeys(): Promise<Set<string>> {
+  try {
+    const entries = await runInStore<DeletionEntry[]>(DELETIONS_STORE, (store) =>
+      store.getAll(),
+    );
+    return new Set(entries.map((entry) => entry.key));
+  } catch {
+    // Deletions are best-effort reads; failures behave like "no deletions".
+    return new Set();
+  }
+}
+
+export async function setDeleted(key: string, deleted: boolean): Promise<void> {
+  if (deleted) {
+    await runInStore(DELETIONS_STORE, (store) => store.put({ key }));
+  } else {
+    await runInStore(DELETIONS_STORE, (store) => store.delete(key));
+  }
 }

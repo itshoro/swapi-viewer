@@ -5,7 +5,7 @@ interface ResourceLinkProps {
   url: string;
   to?: (ref: ResourceRef) => To;
   replace?: boolean;
-  label?: (ref: ResourceRef) => string | undefined;
+  label?: (ref: ResourceRef) => string | null | undefined;
 }
 
 export function ResourceLink({

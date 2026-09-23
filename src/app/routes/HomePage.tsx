@@ -6,16 +6,19 @@ import {
   useSearchParams,
   type To,
 } from "react-router";
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   API_BASE,
   CATEGORIES,
+  deleteResource,
   resourceKey,
   resourceLabel,
+  setResourcePinned,
   type Category,
   type CollectionItem,
   type ResourceRef,
 } from "../../dal/swapi";
+import { getDeletedKeys } from "../../dal/cache";
 import { editors } from "../editors";
 import { EntityField } from "../components/EntityField";
 import { EntityList } from "../components/EntityList";
@@ -26,10 +29,22 @@ export function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get("search") ?? "";
   const categoriesParam = searchParams.get("categories");
+  const pinFilterParam = searchParams.get("pin") ?? "";
+  const pinFilter: "all" | "pinned" | "unpinned" =
+    pinFilterParam === "pinned" || pinFilterParam === "unpinned"
+      ? pinFilterParam
+      : "all";
   const listRef = useRef<HTMLElement>(null);
 
   const handleSearchChange = (value: string) => {
     setSearchParams(value.trim() ? { search: value } : {}, { replace: true });
+  };
+
+  const handlePinFilterChange = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (value === "all") next.delete("pin");
+    else next.set("pin", value);
+    setSearchParams(next, { replace: true });
   };
 
   const urlCategory: Category | null = CATEGORIES.includes(
@@ -81,6 +96,12 @@ export function HomePage() {
     })),
   });
 
+  const { data: deletedKeys = new Set<string>() } = useQuery({
+    queryKey: ["deleted-keys"],
+    queryFn: () => getDeletedKeys(),
+    staleTime: Infinity,
+  });
+
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase();
     return CATEGORIES.map(
@@ -96,8 +117,13 @@ export function HomePage() {
           category,
           items: (collectionResults[index]?.data ?? []).filter(
             (item) =>
-              q.length === 0 ||
-              resourceLabel(item.resource).toLowerCase().includes(q),
+              (q.length === 0 ||
+                resourceLabel(item.resource).toLowerCase().includes(q)) &&
+              (pinFilter === "pinned"
+                ? item.pinned
+                : pinFilter === "unpinned"
+                  ? !item.pinned
+                  : true),
           ),
         };
       },
@@ -105,9 +131,27 @@ export function HomePage() {
       (group): group is { category: Category; items: CollectionItem[] } =>
         group !== null && group.items.length > 0,
     );
-  }, [query, collectionResults, enabledCategories]);
+  }, [query, collectionResults, enabledCategories, pinFilter]);
 
   const total = groups.reduce((sum, group) => sum + group.items.length, 0);
+
+  const pinnedGroups = useMemo(
+    () =>
+      pinFilter === "all"
+        ? groups
+            .map((group) => ({
+              ...group,
+              items: group.items.filter((item) => item.pinned),
+            }))
+            .filter((group) => group.items.length > 0)
+        : [],
+    [groups, pinFilter],
+  );
+
+  const pinnedTotal = pinnedGroups.reduce(
+    (sum, group) => sum + group.items.length,
+    0,
+  );
 
   const itemsByKey = useMemo(
     () =>
@@ -123,7 +167,10 @@ export function HomePage() {
     ? (itemsByKey.get(selectedKey) ?? null)
     : null;
 
-  const resolveResourceLabel = (ref: ResourceRef): string | undefined => {
+  const resolveResourceLabel = (
+    ref: ResourceRef,
+  ): string | null | undefined => {
+    if (deletedKeys.has(resourceKey(ref.category, ref.id))) return null;
     const entry = itemsByKey.get(resourceKey(ref.category, ref.id));
     return entry ? resourceLabel(entry.resource) : undefined;
   };
@@ -151,6 +198,82 @@ export function HomePage() {
       { replace: true },
     );
   };
+
+  const queryClient = useQueryClient();
+
+  const handleTogglePin = async (item: CollectionItem) => {
+    try {
+      await setResourcePinned(item.category, item.id, !item.pinned);
+      await queryClient.invalidateQueries({
+        queryKey: ["collection", item.category],
+      });
+    } catch {
+      // Pin storage is best-effort; ignore failures.
+    }
+  };
+
+  const handleDelete = async (item: CollectionItem) => {
+    if (!window.confirm(`Delete "${resourceLabel(item.resource)}"?`)) return;
+    try {
+      await deleteResource(item.category, item.id);
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["collection", item.category],
+        }),
+        queryClient.invalidateQueries({ queryKey: ["deleted-keys"] }),
+      ]);
+      if (selectedKey === item.key) handleClose();
+    } catch {
+      // Delete storage is best-effort; ignore failures.
+    }
+  };
+
+  const resultsTitle = query.trim()
+    ? `Results for "${query}"`
+    : pinFilter === "pinned"
+      ? "Pinned"
+      : pinFilter === "unpinned"
+        ? "Un-pinned"
+        : "All results";
+
+  const emptyMessage = query.trim()
+    ? `No results for "${query}".`
+    : pinFilter === "pinned"
+      ? "No pinned entries."
+      : pinFilter === "unpinned"
+        ? "No un-pinned entries."
+        : "No results.";
+
+  const renderGroupList = (
+    groupList: { category: Category; items: CollectionItem[] }[],
+  ) =>
+    groupList.map((group) => (
+      <section key={group.category} className="mb-5">
+        <h3 className="sticky top-28 z-10 mb-2 flex items-baseline gap-2 bg-white py-1 text-base font-semibold text-slate-800">
+          <Link
+            to={`/?categories=${group.category}`}
+            className="text-blue-600 hover:text-blue-800"
+          >
+            /api/{group.category}
+          </Link>
+          <span className="text-sm font-normal text-slate-500">
+            ({group.items.length})
+          </span>
+          <Link
+            to={`/${group.category}/add`}
+            className="ml-auto rounded border border-slate-300 px-2 py-0.5 text-xs font-normal text-slate-600 hover:border-blue-500 hover:text-blue-700"
+          >
+            Add
+          </Link>
+        </h3>
+        <EntityList
+          items={group.items}
+          onSelect={handleSelect}
+          onTogglePin={handleTogglePin}
+          selectedKey={selectedKey}
+        />
+      </section>
+    ));
 
   const loading = collectionResults.some(
     (result, index) =>
@@ -202,6 +325,22 @@ export function HomePage() {
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               />
             </label>
+            <label className="mt-3 block">
+              <span className="mb-1 block text-sm font-medium text-slate-700">
+                Pin filter
+              </span>
+              <select
+                value={pinFilter}
+                onChange={(event) =>
+                  handlePinFilterChange(event.target.value)
+                }
+                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="all">Doesn't matter</option>
+                <option value="pinned">Pinned only</option>
+                <option value="unpinned">Un-pinned only</option>
+              </select>
+            </label>
             <div className="mt-3">
               <div className="mb-1 flex items-baseline justify-between">
                 <span className="text-sm font-medium text-slate-700">
@@ -249,8 +388,19 @@ export function HomePage() {
             <p className="p-2 text-sm text-red-600">{error.message}</p>
           ) : (
             <>
+              {pinnedGroups.length > 0 ? (
+                <section className="mb-6">
+                  <h2 className="mb-3 flex items-baseline gap-2 text-lg font-semibold text-slate-800">
+                    Pinned
+                    <span className="text-sm font-normal text-slate-500">
+                      ({pinnedTotal} {pinnedTotal === 1 ? "item" : "items"})
+                    </span>
+                  </h2>
+                  {renderGroupList(pinnedGroups)}
+                </section>
+              ) : null}
               <h2 className="mb-3 text-lg font-semibold text-slate-800">
-                {query.trim() ? `Results for "${query}"` : `All results`}
+                {resultsTitle}
                 {total > 0 ? (
                   <span className="ml-2 font-normal text-slate-500">
                     ({total} {total === 1 ? "item" : "items"})
@@ -263,39 +413,10 @@ export function HomePage() {
                     Select at least one category to show results.
                   </p>
                 ) : (
-                  <p className="p-2 text-sm text-slate-500">
-                    {query.trim()
-                      ? `No results for "${query}".`
-                      : "No results."}
-                  </p>
+                  <p className="p-2 text-sm text-slate-500">{emptyMessage}</p>
                 )
               ) : (
-                groups.map((group) => (
-                  <section key={group.category} className="mb-5">
-                    <h3 className="sticky top-28 z-10 mb-2 flex items-baseline gap-2 bg-white py-1 text-base font-semibold text-slate-800">
-                      <Link
-                        to={`/?categories=${group.category}`}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        /api/{group.category}
-                      </Link>
-                      <span className="text-sm font-normal text-slate-500">
-                        ({group.items.length})
-                      </span>
-                      <Link
-                        to={`/${group.category}/add`}
-                        className="ml-auto rounded border border-slate-300 px-2 py-0.5 text-xs font-normal text-slate-600 hover:border-blue-500 hover:text-blue-700"
-                      >
-                        Add
-                      </Link>
-                    </h3>
-                    <EntityList
-                      items={group.items}
-                      onSelect={handleSelect}
-                      selectedKey={selectedKey}
-                    />
-                  </section>
-                ))
+                renderGroupList(groups)
               )}
             </>
           )}
@@ -305,6 +426,8 @@ export function HomePage() {
             <DetailPanel
               item={selectedItem}
               onClose={handleClose}
+              onTogglePin={handleTogglePin}
+              onDelete={handleDelete}
               linkTo={(ref) => `/${ref.category}/${ref.id}`}
               resolveLabel={resolveResourceLabel}
               replace
@@ -323,17 +446,21 @@ export function HomePage() {
 function DetailPanel({
   item,
   onClose,
+  onTogglePin,
+  onDelete,
   linkTo,
   resolveLabel,
   replace,
 }: {
   item: CollectionItem;
   onClose: () => void;
+  onTogglePin: (item: CollectionItem) => void;
+  onDelete: (item: CollectionItem) => void;
   linkTo: (ref: ResourceRef) => To;
-  resolveLabel: (ref: ResourceRef) => string | undefined;
+  resolveLabel: (ref: ResourceRef) => string | null | undefined;
   replace: boolean;
 }) {
-  const { category, id, resource, modified } = item;
+  const { category, id, resource, modified, pinned } = item;
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-4">
       <div className="mb-2 flex items-start justify-between gap-2">
@@ -361,6 +488,22 @@ function DetailPanel({
         >
           Edit
         </Link>
+        {" · "}
+        <button
+          type="button"
+          onClick={() => onTogglePin(item)}
+          className="text-blue-600 hover:text-blue-800"
+        >
+          {pinned ? "Unpin" : "Pin"}
+        </button>
+        {" · "}
+        <button
+          type="button"
+          onClick={() => onDelete(item)}
+          className="text-red-600 hover:text-red-800"
+        >
+          Delete
+        </button>
         {modified ? (
           <>
             {" · "}
